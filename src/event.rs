@@ -1,5 +1,6 @@
 use crate::{
-	hex_utils, ChannelManager, Config, Error, KeysManager, NetworkGraph, UserChannelId, Wallet,
+	hex_utils, ChannelManager, Config, Error, KeysManager, NetworkGraph, UnknownPreimageFetcher,
+	UserChannelId, Wallet,
 };
 
 use crate::payment_store::{
@@ -251,6 +252,7 @@ where
 	runtime: Arc<RwLock<Option<tokio::runtime::Runtime>>>,
 	logger: L,
 	config: Arc<Config>,
+	unknown_preimage_fetcher_or: Option<Arc<dyn UnknownPreimageFetcher>>,
 }
 
 impl<K: KVStore + Sync + Send + 'static, L: Deref> EventHandler<K, L>
@@ -262,6 +264,7 @@ where
 		channel_manager: Arc<ChannelManager<K>>, network_graph: Arc<NetworkGraph>,
 		keys_manager: Arc<KeysManager>, payment_store: Arc<PaymentStore<K, L>>,
 		runtime: Arc<RwLock<Option<tokio::runtime::Runtime>>>, logger: L, config: Arc<Config>,
+		unknown_preimage_fetcher_or: Option<Arc<dyn UnknownPreimageFetcher>>,
 	) -> Self {
 		Self {
 			event_queue,
@@ -273,6 +276,7 @@ where
 			logger,
 			runtime,
 			config,
+			unknown_preimage_fetcher_or,
 		}
 	}
 
@@ -398,12 +402,35 @@ where
 
 				if let Some(preimage) = payment_preimage {
 					self.channel_manager.claim_funds(preimage);
+				} else if let Some(unknown_preimage_fetcher) = &self.unknown_preimage_fetcher_or {
+					match unknown_preimage_fetcher.get_preimage(payment_hash).await {
+						Ok(preimage) => {
+							self.channel_manager.claim_funds(preimage);
+						}
+						Err(e) => {
+							log_error!(
+									self.logger,
+									"Failed to claim payment with hash {}. Preimage was unknown. Attempt to fetch it failed with error: {e}",
+									hex_utils::to_string(&payment_hash.0),
+								);
+							self.channel_manager.fail_htlc_backwards(&payment_hash);
+
+							let update = PaymentDetailsUpdate {
+								status: Some(PaymentStatus::Failed),
+								..PaymentDetailsUpdate::new(payment_hash)
+							};
+							self.payment_store.update(&update).unwrap_or_else(|e| {
+								log_error!(self.logger, "Failed to access payment store: {}", e);
+								panic!("Failed to access payment store");
+							});
+						}
+					}
 				} else {
 					log_error!(
-						self.logger,
-						"Failed to claim payment with hash {}: preimage unknown.",
-						hex_utils::to_string(&payment_hash.0),
-					);
+							self.logger,
+							"Failed to claim payment with hash {}. Preimage was unknown and `unknown_preimage_fetcher` is unset, so no attempt was made to fetch it.",
+							hex_utils::to_string(&payment_hash.0),
+						);
 					self.channel_manager.fail_htlc_backwards(&payment_hash);
 
 					let update = PaymentDetailsUpdate {
