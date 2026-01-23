@@ -297,6 +297,7 @@ pub(crate) struct TestConfig {
 	pub node_config: Config,
 	pub log_writer: TestLogWriter,
 	pub store_type: TestStoreType,
+	pub recovery_mode: bool,
 }
 
 macro_rules! setup_builder {
@@ -426,6 +427,10 @@ pub(crate) fn setup_node_for_async_payments(
 	}
 
 	builder.set_async_payments_role(async_payments_role).unwrap();
+
+	if config.recovery_mode {
+		builder.set_wallet_recovery_mode();
+	}
 
 	let node = match config.store_type {
 		TestStoreType::TestSyncStore => {
