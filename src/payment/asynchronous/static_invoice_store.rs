@@ -74,7 +74,7 @@ impl StaticInvoiceStore {
 	pub(crate) async fn handle_static_invoice_requested(
 		&self, recipient_id: &[u8], invoice_slot: u16,
 	) -> Result<Option<(StaticInvoice, BlindedMessagePath)>, lightning::io::Error> {
-		Self::check_rate_limit(&self.request_rate_limiter, &recipient_id)?;
+		Self::check_rate_limit(&self.request_rate_limiter, recipient_id)?;
 
 		let (secondary_namespace, key) = Self::get_storage_location(invoice_slot, recipient_id);
 

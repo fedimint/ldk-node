@@ -208,7 +208,7 @@ pub struct UserChannelId(pub u128);
 
 impl Writeable for UserChannelId {
 	fn write<W: Writer>(&self, writer: &mut W) -> Result<(), lightning::io::Error> {
-		Ok(self.0.write(writer)?)
+		self.0.write(writer)
 	}
 }
 

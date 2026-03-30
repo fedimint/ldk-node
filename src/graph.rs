@@ -31,22 +31,22 @@ impl NetworkGraph {
 
 	/// Returns the list of channels in the graph
 	pub fn list_channels(&self) -> Vec<u64> {
-		self.inner.read_only().channels().unordered_keys().map(|c| *c).collect()
+		self.inner.read_only().channels().unordered_keys().copied().collect()
 	}
 
 	/// Returns information on a channel with the given id.
 	pub fn channel(&self, short_channel_id: u64) -> Option<ChannelInfo> {
-		self.inner.read_only().channels().get(&short_channel_id).cloned().map(|c| c.into())
+		self.inner.read_only().channels().get(&short_channel_id).cloned().map(|c| c)
 	}
 
 	/// Returns the list of nodes in the graph
 	pub fn list_nodes(&self) -> Vec<NodeId> {
-		self.inner.read_only().nodes().unordered_keys().map(|n| *n).collect()
+		self.inner.read_only().nodes().unordered_keys().copied().collect()
 	}
 
 	/// Returns information on a node with the given id.
 	pub fn node(&self, node_id: &NodeId) -> Option<NodeInfo> {
-		self.inner.read_only().nodes().get(node_id).cloned().map(|n| n.into())
+		self.inner.read_only().nodes().get(node_id).cloned().map(|n| n)
 	}
 }
 

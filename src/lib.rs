@@ -289,7 +289,7 @@ impl Node {
 									{
 										let mut locked_node_metrics = gossip_node_metrics.write().unwrap();
 										locked_node_metrics.latest_rgs_snapshot_timestamp = Some(updated_timestamp);
-										write_node_metrics(&*locked_node_metrics, Arc::clone(&gossip_sync_store), Arc::clone(&gossip_sync_logger))
+										write_node_metrics(&locked_node_metrics, Arc::clone(&gossip_sync_store), Arc::clone(&gossip_sync_logger))
 											.unwrap_or_else(|e| {
 												log_error!(gossip_sync_logger, "Persistence failed: {}", e);
 											});
@@ -444,7 +444,7 @@ impl Node {
 		let bcast_logger = Arc::clone(&self.logger);
 		let bcast_node_metrics = Arc::clone(&self.node_metrics);
 		let mut stop_bcast = self.stop_sender.subscribe();
-		let node_alias = self.config.node_alias.clone();
+		let node_alias = self.config.node_alias;
 		if may_announce_channel(&self.config).is_ok() {
 			self.runtime.spawn_cancellable_background_task(async move {
 				// We check every 30 secs whether our last broadcast is NODE_ANN_BCAST_INTERVAL away.
@@ -505,7 +505,7 @@ impl Node {
 								{
 									let mut locked_node_metrics = bcast_node_metrics.write().unwrap();
 									locked_node_metrics.latest_node_announcement_broadcast_timestamp = unix_time_secs_opt;
-									write_node_metrics(&*locked_node_metrics, Arc::clone(&bcast_store), Arc::clone(&bcast_logger))
+									write_node_metrics(&locked_node_metrics, Arc::clone(&bcast_store), Arc::clone(&bcast_logger))
 										.unwrap_or_else(|e| {
 											log_error!(bcast_logger, "Persistence failed: {}", e);
 										});
@@ -620,7 +620,7 @@ impl Node {
 
 		if let Some(liquidity_source) = self.liquidity_source.as_ref() {
 			let mut stop_liquidity_handler = self.stop_sender.subscribe();
-			let liquidity_handler = Arc::clone(&liquidity_source);
+			let liquidity_handler = Arc::clone(liquidity_source);
 			let liquidity_logger = Arc::clone(&self.logger);
 			self.runtime.spawn_background_task(async move {
 				loop {
@@ -712,7 +712,7 @@ impl Node {
 	/// Returns the status of the [`Node`].
 	pub fn status(&self) -> NodeStatus {
 		let is_running = *self.is_running.read().unwrap();
-		let current_best_block = self.channel_manager.current_best_block().into();
+		let current_best_block = self.channel_manager.current_best_block();
 		let locked_node_metrics = self.node_metrics.read().unwrap();
 		let latest_lightning_wallet_sync_timestamp =
 			locked_node_metrics.latest_lightning_wallet_sync_timestamp;
@@ -1088,7 +1088,7 @@ impl Node {
 
 		let mut user_config = default_user_config(&self.config);
 		user_config.channel_handshake_config.announce_for_forwarding = announce_for_forwarding;
-		user_config.channel_config = (channel_config.unwrap_or_default()).clone().into();
+		user_config.channel_config = (channel_config.unwrap_or_default()).into();
 		// We set the max inflight to 100% for private channels.
 		// FIXME: LDK will default to this behavior soon, too, at which point we should drop this
 		// manual override.
@@ -1263,7 +1263,7 @@ impl Node {
 			self.check_sufficient_funds_for_channel(splice_amount_sats, &counterparty_node_id)?;
 
 			const EMPTY_SCRIPT_SIG_WEIGHT: u64 =
-				1 /* empty script_sig */ * bitcoin::constants::WITNESS_SCALE_FACTOR as u64;
+				bitcoin::constants::WITNESS_SCALE_FACTOR as u64;
 
 			// Used for creating a redeem script for the previous funding txo and the new funding
 			// txo. Only needed when selecting which UTXOs to include in the funding tx that would
@@ -1550,7 +1550,7 @@ impl Node {
 				.update_channel_config(
 					&counterparty_node_id,
 					&[channel_details.channel_id],
-					&(channel_config).clone().into(),
+					&(channel_config).into(),
 				)
 				.map_err(|_| Error::ChannelConfigUpdateFailed)
 		} else {
@@ -1567,7 +1567,7 @@ impl Node {
 
 	/// Remove the payment with the given id from the store.
 	pub fn remove_payment(&self, payment_id: &PaymentId) -> Result<(), Error> {
-		self.payment_store.remove(&payment_id)
+		self.payment_store.remove(payment_id)
 	}
 
 	/// Retrieves an overview of all known balances.
@@ -1782,6 +1782,7 @@ pub struct NodeStatus {
 
 /// Status fields that are persisted across restarts.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Default)]
 pub(crate) struct NodeMetrics {
 	latest_lightning_wallet_sync_timestamp: Option<u64>,
 	latest_onchain_wallet_sync_timestamp: Option<u64>,
@@ -1792,19 +1793,6 @@ pub(crate) struct NodeMetrics {
 	latest_channel_monitor_archival_height: Option<u32>,
 }
 
-impl Default for NodeMetrics {
-	fn default() -> Self {
-		Self {
-			latest_lightning_wallet_sync_timestamp: None,
-			latest_onchain_wallet_sync_timestamp: None,
-			latest_fee_rate_cache_update_timestamp: None,
-			latest_rgs_snapshot_timestamp: None,
-			latest_pathfinding_scores_sync_timestamp: None,
-			latest_node_announcement_broadcast_timestamp: None,
-			latest_channel_monitor_archival_height: None,
-		}
-	}
-}
 
 impl_writeable_tlv_based!(NodeMetrics, {
 	(0, latest_lightning_wallet_sync_timestamp, option),
@@ -1825,8 +1813,7 @@ pub(crate) fn total_anchor_channels_reserve_sats(
 			.into_iter()
 			.filter(|c| {
 				!anchor_channels_config.trusted_peers_no_reserve.contains(&c.counterparty.node_id)
-					&& c.channel_shutdown_state
-						.map_or(true, |s| s != ChannelShutdownState::ShutdownComplete)
+					&& (c.channel_shutdown_state != Some(ChannelShutdownState::ShutdownComplete))
 					&& c.channel_type
 						.as_ref()
 						.map_or(false, |t| t.requires_anchors_zero_fee_htlc_tx())

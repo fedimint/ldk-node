@@ -255,7 +255,7 @@ impl SqliteStoreInner {
 			io::Error::new(io::ErrorKind::Other, msg)
 		})?;
 
-		let sql = format!("SELECT user_version FROM pragma_user_version");
+		let sql = "SELECT user_version FROM pragma_user_version".to_string();
 		let version_res: u16 = connection.query_row(&sql, [], |row| row.get(0)).unwrap();
 
 		if version_res == 0 {
@@ -303,7 +303,7 @@ impl SqliteStoreInner {
 
 	fn get_inner_lock_ref(&self, locking_key: String) -> Arc<Mutex<u64>> {
 		let mut outer_lock = self.write_version_locks.lock().unwrap();
-		Arc::clone(&outer_lock.entry(locking_key).or_default())
+		Arc::clone(outer_lock.entry(locking_key).or_default())
 	}
 
 	fn read_internal(
@@ -501,7 +501,7 @@ impl SqliteStoreInner {
 		// counted.
 		let mut outer_lock = self.write_version_locks.lock().unwrap();
 
-		let strong_count = Arc::strong_count(&inner_lock_ref);
+		let strong_count = Arc::strong_count(inner_lock_ref);
 		debug_assert!(strong_count >= 2, "Unexpected SqliteStore strong count");
 
 		if strong_count == 2 {

@@ -61,7 +61,6 @@ impl WalletSyncStatus {
 			match self {
 				WalletSyncStatus::Completed => {
 					// No sync in-progress, do nothing.
-					return;
 				},
 				WalletSyncStatus::InProgress { subscribers } => {
 					// A sync is in-progress, we notify subscribers.
@@ -245,7 +244,6 @@ impl ChainSource {
 						self.logger,
 						"Background syncing is disabled. Manual syncing required for onchain wallet, lightning wallet, and fee rate updates.",
 					);
-					return;
 				}
 			},
 			ChainSourceKind::Electrum(electrum_chain_source) => {
@@ -268,7 +266,6 @@ impl ChainSource {
 						self.logger,
 						"Background syncing is disabled. Manual syncing required for onchain wallet, lightning wallet, and fee rate updates.",
 					);
-					return;
 				}
 			},
 			ChainSourceKind::Bitcoind(bitcoind_chain_source) => {
@@ -502,7 +499,7 @@ fn periodically_archive_fully_resolved_monitors(
 	if should_archive {
 		chain_monitor.archive_fully_resolved_channel_monitors();
 		locked_node_metrics.latest_channel_monitor_archival_height = Some(cur_height);
-		write_node_metrics(&*locked_node_metrics, kv_store, logger)?;
+		write_node_metrics(&locked_node_metrics, kv_store, logger)?;
 	}
 	Ok(())
 }

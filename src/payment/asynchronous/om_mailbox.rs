@@ -19,7 +19,7 @@ impl OnionMessageMailbox {
 	pub(crate) fn onion_message_intercepted(&self, peer_node_id: PublicKey, message: OnionMessage) {
 		let mut map = self.map.lock().unwrap();
 
-		let queue = map.entry(peer_node_id).or_insert_with(VecDeque::new);
+		let queue = map.entry(peer_node_id).or_default();
 		if queue.len() >= Self::MAX_MESSAGES_PER_PEER {
 			queue.pop_front();
 		}

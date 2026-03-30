@@ -443,7 +443,7 @@ impl NodeBuilder {
 		&mut self, node_id: PublicKey, address: SocketAddress, token: Option<String>,
 	) -> &mut Self {
 		// Mark the LSP as trusted for 0conf
-		self.config.trusted_peers_0conf.push(node_id.clone());
+		self.config.trusted_peers_0conf.push(node_id);
 
 		let liquidity_source_config =
 			self.liquidity_source_config.get_or_insert(LiquiditySourceConfig::default());
@@ -464,7 +464,7 @@ impl NodeBuilder {
 		&mut self, node_id: PublicKey, address: SocketAddress, token: Option<String>,
 	) -> &mut Self {
 		// Mark the LSP as trusted for 0conf
-		self.config.trusted_peers_0conf.push(node_id.clone());
+		self.config.trusted_peers_0conf.push(node_id);
 
 		let liquidity_source_config =
 			self.liquidity_source_config.get_or_insert(LiquiditySourceConfig::default());
@@ -1413,7 +1413,7 @@ fn build_with_store_internal(
 			Ok(graph) => Arc::new(graph),
 			Err(e) => {
 				if e.kind() == std::io::ErrorKind::NotFound {
-					Arc::new(Graph::new(config.network.into(), Arc::clone(&logger)))
+					Arc::new(Graph::new(config.network, Arc::clone(&logger)))
 				} else {
 					log_error!(logger, "Failed to read network graph from store: {}", e);
 					return Err(BuildError::ReadFailed);
@@ -1527,7 +1527,7 @@ fn build_with_store_internal(
 			let best_block =
 				chain_tip_opt.unwrap_or_else(|| BestBlock::from_network(config.network));
 
-			let chain_params = ChainParameters { network: config.network.into(), best_block };
+			let chain_params = ChainParameters { network: config.network, best_block };
 			channelmanager::ChannelManager::new(
 				Arc::clone(&fee_estimator),
 				Arc::clone(&chain_monitor),
@@ -1599,7 +1599,7 @@ fn build_with_store_internal(
 				let mut locked_node_metrics = node_metrics.write().unwrap();
 				locked_node_metrics.latest_rgs_snapshot_timestamp = None;
 				write_node_metrics(
-					&*locked_node_metrics,
+					&locked_node_metrics,
 					Arc::clone(&kv_store),
 					Arc::clone(&logger),
 				)
@@ -1711,7 +1711,7 @@ fn build_with_store_internal(
 		Arc::clone(&keys_manager),
 	));
 
-	liquidity_source.as_ref().map(|l| l.set_peer_manager(Arc::clone(&peer_manager)));
+	if let Some(l) = liquidity_source.as_ref() { l.set_peer_manager(Arc::clone(&peer_manager)) }
 
 	gossip_source.set_gossip_verifier(
 		Arc::clone(&chain_source),
@@ -1857,7 +1857,7 @@ fn setup_logger(
 		Some(LogWriterConfig::Log) => Logger::new_log_facade(),
 
 		Some(LogWriterConfig::Custom(custom_log_writer)) => {
-			Logger::new_custom_writer(Arc::clone(&custom_log_writer))
+			Logger::new_custom_writer(Arc::clone(custom_log_writer))
 		},
 		None => {
 			// Default to use `FileWriter`
@@ -1875,7 +1875,7 @@ fn seed_bytes_from_config(
 	config: &Config, entropy_source_config: Option<&EntropySourceConfig>, logger: Arc<Logger>,
 ) -> Result<[u8; 64], BuildError> {
 	match entropy_source_config {
-		Some(EntropySourceConfig::SeedBytes(bytes)) => Ok(bytes.clone()),
+		Some(EntropySourceConfig::SeedBytes(bytes)) => Ok(*bytes),
 		Some(EntropySourceConfig::SeedFile(seed_path)) => {
 			Ok(io::utils::read_or_generate_seed_file(seed_path, Arc::clone(&logger))
 				.map_err(|_| BuildError::InvalidSeedFile)?)
@@ -1915,12 +1915,12 @@ pub(crate) fn sanitize_alias(alias_str: &str) -> Result<NodeAlias, BuildError> {
 	let alias = alias_str.trim();
 
 	// Alias must be 32-bytes long or less.
-	if alias.as_bytes().len() > 32 {
+	if alias.len() > 32 {
 		return Err(BuildError::InvalidNodeAlias);
 	}
 
 	let mut bytes = [0u8; 32];
-	bytes[..alias.as_bytes().len()].copy_from_slice(alias.as_bytes());
+	bytes[..alias.len()].copy_from_slice(alias.as_bytes());
 	Ok(NodeAlias(bytes))
 }
 

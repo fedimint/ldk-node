@@ -33,7 +33,7 @@ const DEFAULT_ANCHOR_PER_CHANNEL_RESERVE_SATS: u64 = 25_000;
 pub const DEFAULT_LOG_LEVEL: LogLevel = LogLevel::Debug;
 
 /// The default log file name.
-pub const DEFAULT_LOG_FILENAME: &'static str = "ldk_node.log";
+pub const DEFAULT_LOG_FILENAME: &str = "ldk_node.log";
 
 /// The default storage directory.
 pub const DEFAULT_STORAGE_DIR_PATH: &str = "/tmp/ldk_node";

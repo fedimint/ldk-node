@@ -243,7 +243,7 @@ where
 		});
 
 		let lsps1_client_config = self.lsps1_client.as_ref().map(|s| s.ldk_client_config.clone());
-		let lsps2_client_config = self.lsps2_client.as_ref().map(|s| s.ldk_client_config.clone());
+		let lsps2_client_config = self.lsps2_client.as_ref().map(|s| s.ldk_client_config);
 		let lsps5_client_config = None;
 		let liquidity_client_config = Some(LiquidityClientConfig {
 			lsps1_client_config,
@@ -470,7 +470,7 @@ where
 						let response = LSPS1OrderStatus {
 							order_id,
 							order_params: order,
-							payment_options: payment.into(),
+							payment_options: payment,
 							channel_state: channel,
 						};
 
@@ -528,7 +528,7 @@ where
 						let response = LSPS1OrderStatus {
 							order_id,
 							order_params: order,
-							payment_options: payment.into(),
+							payment_options: payment,
 							channel_state: channel,
 						};
 
@@ -621,7 +621,6 @@ where
 					}
 				} else {
 					log_error!(self.logger, "Failed to handle LSPS2ServiceEvent as LSPS2 liquidity service was not configured.",);
-					return;
 				}
 			},
 			LiquidityEvent::LSPS2Service(LSPS2ServiceEvent::BuyRequest {
@@ -686,12 +685,10 @@ where
 								"Failed to provide invoice parameters: {:?}",
 								e
 							);
-							return;
 						},
 					}
 				} else {
 					log_error!(self.logger, "Failed to handle LSPS2ServiceEvent as LSPS2 liquidity service was not configured.",);
-					return;
 				}
 			},
 			LiquidityEvent::LSPS2Service(LSPS2ServiceEvent::OpenChannel {
@@ -804,7 +801,6 @@ where
 							their_network_key,
 							e
 						);
-						return;
 					},
 				}
 			},
@@ -1499,7 +1495,7 @@ impl LSPS1Liquidity {
 
 		let refund_address = self.wallet.get_new_address()?;
 
-		let liquidity_source = Arc::clone(&liquidity_source);
+		let liquidity_source = Arc::clone(liquidity_source);
 		let response = self.runtime.block_on(async move {
 			liquidity_source
 				.lsps1_request_channel(
@@ -1533,7 +1529,7 @@ impl LSPS1Liquidity {
 			con_cm.connect_peer_if_necessary(con_node_id, con_addr).await
 		})?;
 
-		let liquidity_source = Arc::clone(&liquidity_source);
+		let liquidity_source = Arc::clone(liquidity_source);
 		let response = self
 			.runtime
 			.block_on(async move { liquidity_source.lsps1_check_order_status(order_id).await })?;
