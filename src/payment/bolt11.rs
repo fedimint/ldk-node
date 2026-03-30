@@ -148,7 +148,7 @@ impl Bolt11Payment {
 				log_error!(self.logger,
 					"Failed to send payment due to the given invoice being \"zero-amount\". Please use send_using_amount instead."
 				);
-				return Err(Error::InvalidInvoice);
+				Err(Error::InvalidInvoice)
 			},
 			Err(Bolt11PaymentError::SendingFailed(e)) => {
 				log_error!(self.logger, "Failed to send payment: {:?}", e);
@@ -259,7 +259,7 @@ impl Bolt11Payment {
 					self.logger,
 					"Failed to send payment due to amount given being insufficient."
 				);
-				return Err(Error::InvalidInvoice);
+				Err(Error::InvalidInvoice)
 			},
 			Err(Bolt11PaymentError::SendingFailed(e)) => {
 				log_error!(self.logger, "Failed to send payment: {:?}", e);
@@ -407,7 +407,7 @@ impl Bolt11Payment {
 		&self, amount_msat: u64, description: &Bolt11InvoiceDescription, expiry_secs: u32,
 	) -> Result<Bolt11Invoice, Error> {
 		let description = maybe_try_convert_enum(description)?;
-		let invoice = self.receive_inner(Some(amount_msat), &description, expiry_secs, None)?;
+		let invoice = self.receive_inner(Some(amount_msat), description, expiry_secs, None)?;
 		Ok(maybe_wrap(invoice))
 	}
 
@@ -431,7 +431,7 @@ impl Bolt11Payment {
 	) -> Result<Bolt11Invoice, Error> {
 		let description = maybe_try_convert_enum(description)?;
 		let invoice =
-			self.receive_inner(Some(amount_msat), &description, expiry_secs, Some(payment_hash))?;
+			self.receive_inner(Some(amount_msat), description, expiry_secs, Some(payment_hash))?;
 		Ok(maybe_wrap(invoice))
 	}
 
@@ -443,7 +443,7 @@ impl Bolt11Payment {
 		&self, description: &Bolt11InvoiceDescription, expiry_secs: u32,
 	) -> Result<Bolt11Invoice, Error> {
 		let description = maybe_try_convert_enum(description)?;
-		let invoice = self.receive_inner(None, &description, expiry_secs, None)?;
+		let invoice = self.receive_inner(None, description, expiry_secs, None)?;
 		Ok(maybe_wrap(invoice))
 	}
 
@@ -465,7 +465,7 @@ impl Bolt11Payment {
 		&self, description: &Bolt11InvoiceDescription, expiry_secs: u32, payment_hash: PaymentHash,
 	) -> Result<Bolt11Invoice, Error> {
 		let description = maybe_try_convert_enum(description)?;
-		let invoice = self.receive_inner(None, &description, expiry_secs, Some(payment_hash))?;
+		let invoice = self.receive_inner(None, description, expiry_secs, Some(payment_hash))?;
 		Ok(maybe_wrap(invoice))
 	}
 
@@ -502,7 +502,7 @@ impl Bolt11Payment {
 			// will know the preimage at this point.
 			let res = self
 				.channel_manager
-				.get_payment_preimage(payment_hash, payment_secret.clone())
+				.get_payment_preimage(payment_hash, *payment_secret)
 				.ok();
 			debug_assert!(res.is_some(), "We just let ChannelManager create an inbound payment, it can't have forgotten the preimage by now.");
 			res
@@ -512,7 +512,7 @@ impl Bolt11Payment {
 		let kind = PaymentKind::Bolt11 {
 			hash: payment_hash,
 			preimage,
-			secret: Some(payment_secret.clone()),
+			secret: Some(*payment_secret),
 		};
 		let payment = PaymentDetails::new(
 			id,
@@ -544,7 +544,7 @@ impl Bolt11Payment {
 		let description = maybe_try_convert_enum(description)?;
 		let invoice = self.receive_via_jit_channel_inner(
 			Some(amount_msat),
-			&description,
+			description,
 			expiry_secs,
 			max_total_lsp_fee_limit_msat,
 			None,
@@ -583,7 +583,7 @@ impl Bolt11Payment {
 		let description = maybe_try_convert_enum(description)?;
 		let invoice = self.receive_via_jit_channel_inner(
 			Some(amount_msat),
-			&description,
+			description,
 			expiry_secs,
 			max_total_lsp_fee_limit_msat,
 			None,
@@ -610,7 +610,7 @@ impl Bolt11Payment {
 		let description = maybe_try_convert_enum(description)?;
 		let invoice = self.receive_via_jit_channel_inner(
 			None,
-			&description,
+			description,
 			expiry_secs,
 			None,
 			max_proportional_lsp_fee_limit_ppm_msat,
@@ -650,7 +650,7 @@ impl Bolt11Payment {
 		let description = maybe_try_convert_enum(description)?;
 		let invoice = self.receive_via_jit_channel_inner(
 			None,
-			&description,
+			description,
 			expiry_secs,
 			None,
 			max_proportional_lsp_fee_limit_ppm_msat,
@@ -684,7 +684,7 @@ impl Bolt11Payment {
 
 		log_info!(self.logger, "Connected to LSP {}@{}. ", peer_info.node_id, peer_info.address);
 
-		let liquidity_source = Arc::clone(&liquidity_source);
+		let liquidity_source = Arc::clone(liquidity_source);
 		let (invoice, lsp_total_opening_fee, lsp_prop_opening_fee) =
 			self.runtime.block_on(async move {
 				if let Some(amount_msat) = amount_msat {
@@ -720,11 +720,11 @@ impl Bolt11Payment {
 		};
 		let id = PaymentId(payment_hash.0);
 		let preimage =
-			self.channel_manager.get_payment_preimage(payment_hash, payment_secret.clone()).ok();
+			self.channel_manager.get_payment_preimage(payment_hash, *payment_secret).ok();
 		let kind = PaymentKind::Bolt11Jit {
 			hash: payment_hash,
 			preimage,
-			secret: Some(payment_secret.clone()),
+			secret: Some(*payment_secret),
 			counterparty_skimmed_fee_msat: None,
 			lsp_fee_limits,
 		};

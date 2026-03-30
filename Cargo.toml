@@ -43,12 +43,12 @@ lightning-macros = { version = "0.2.0" }
 
 bdk_chain = { version = "0.23.0", default-features = false, features = ["std"] }
 bdk_esplora = { version = "0.22.0", default-features = false, features = ["async-https-rustls", "tokio"]}
-bdk_electrum = { version = "0.23.0", default-features = false, features = ["use-rustls-ring"]}
+bdk_electrum = { version = "0.23.1", default-features = false, features = ["use-rustls-ring"]}
 bdk_wallet = { version = "2.2.0", default-features = false, features = ["std", "keys-bip39"]}
 
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 rustls = { version = "0.23", default-features = false }
-rusqlite = { version = "0.37.0", features = ["bundled"] }
+rusqlite = { version = "0.38.0", features = ["bundled"] }
 bitcoin = "0.32.7"
 bip39 = { version = "2.0.0", features = ["rand"] }
 bip21 = { version = "0.5", features = ["std"], default-features = false }
@@ -92,7 +92,8 @@ lnd_grpc_rust = { version = "2.10.0", default-features = false }
 tokio = { version = "1.37", features = ["fs"] }
 
 [target.'cfg(vss_test)'.dev-dependencies]
-ldk-node-062 = { package = "fedimint-ldk-node", git = "https://github.com/fedimint/ldk-node", rev = "214e25344c2459136b966d20a27cd0068912f7c4" }
+# TODO: update rev to a commit with rusqlite 0.38 once this change lands
+#ldk-node-062 = { package = "fedimint-ldk-node", git = "https://github.com/fedimint/ldk-node", rev = "214e25344c2459136b966d20a27cd0068912f7c4" }
 
 [build-dependencies]
 uniffi = { version = "0.28.3", features = ["build"], optional = true }

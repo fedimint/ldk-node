@@ -114,9 +114,9 @@ impl Bolt12Payment {
 		};
 		let res = if let Some(quantity) = quantity {
 			self.channel_manager
-				.pay_for_offer_with_quantity(&offer, None, payment_id, params, quantity)
+				.pay_for_offer_with_quantity(offer, None, payment_id, params, quantity)
 		} else {
-			self.channel_manager.pay_for_offer(&offer, None, payment_id, params)
+			self.channel_manager.pay_for_offer(offer, None, payment_id, params)
 		};
 
 		match res {
@@ -230,14 +230,14 @@ impl Bolt12Payment {
 		};
 		let res = if let Some(quantity) = quantity {
 			self.channel_manager.pay_for_offer_with_quantity(
-				&offer,
+				offer,
 				Some(amount_msat),
 				payment_id,
 				params,
 				quantity,
 			)
 		} else {
-			self.channel_manager.pay_for_offer(&offer, Some(amount_msat), payment_id, params)
+			self.channel_manager.pay_for_offer(offer, Some(amount_msat), payment_id, params)
 		};
 
 		match res {
@@ -381,7 +381,7 @@ impl Bolt12Payment {
 		}
 
 		let refund = maybe_deref(refund);
-		let invoice = self.channel_manager.request_refund_payment(&refund).map_err(|e| {
+		let invoice = self.channel_manager.request_refund_payment(refund).map_err(|e| {
 			log_error!(self.logger, "Failed to request refund payment: {:?}", e);
 			Error::InvoiceRequestCreationFailed
 		})?;
@@ -465,7 +465,7 @@ impl Bolt12Payment {
 			hash: None,
 			preimage: None,
 			secret: None,
-			payer_note: payer_note.map(|note| UntrustedString(note)),
+			payer_note: payer_note.map(UntrustedString),
 			quantity,
 		};
 		let payment = PaymentDetails::new(

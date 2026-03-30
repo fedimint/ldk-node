@@ -64,7 +64,7 @@ impl BitcoindChainSource {
 	) -> Self {
 		let api_client = Arc::new(BitcoindClient::new_rpc(
 			rpc_host.clone(),
-			rpc_port.clone(),
+			rpc_port,
 			rpc_user.clone(),
 			rpc_password.clone(),
 		));
@@ -205,7 +205,7 @@ impl BitcoindChainSource {
 						locked_node_metrics.latest_onchain_wallet_sync_timestamp =
 							unix_time_secs_opt;
 						write_node_metrics(
-							&*locked_node_metrics,
+							&locked_node_metrics,
 							Arc::clone(&self.kv_store),
 							Arc::clone(&self.logger),
 						)
@@ -352,7 +352,7 @@ impl BitcoindChainSource {
 			},
 			Err(e) => {
 				log_error!(self.logger, "Failed to poll for chain data: {:?}", e);
-				return Err(Error::TxSyncFailed);
+				Err(Error::TxSyncFailed)
 			},
 		}
 	}
@@ -393,7 +393,7 @@ impl BitcoindChainSource {
 		&self, onchain_wallet: Arc<Wallet>, channel_manager: Arc<ChannelManager>,
 		chain_monitor: Arc<ChainMonitor>, output_sweeper: Arc<Sweeper>,
 	) -> Result<(), Error> {
-		let latest_chain_tip_opt = self.latest_chain_tip.read().unwrap().clone();
+		let latest_chain_tip_opt = *self.latest_chain_tip.read().unwrap();
 		let chain_tip =
 			if let Some(tip) = latest_chain_tip_opt { tip } else { self.poll_chain_tip().await? };
 
@@ -469,7 +469,7 @@ impl BitcoindChainSource {
 		locked_node_metrics.latest_onchain_wallet_sync_timestamp = unix_time_secs_opt;
 
 		write_node_metrics(
-			&*locked_node_metrics,
+			&locked_node_metrics,
 			Arc::clone(&self.kv_store),
 			Arc::clone(&self.logger),
 		)?;
@@ -586,7 +586,7 @@ impl BitcoindChainSource {
 			let mut locked_node_metrics = self.node_metrics.write().unwrap();
 			locked_node_metrics.latest_fee_rate_cache_update_timestamp = unix_time_secs_opt;
 			write_node_metrics(
-				&*locked_node_metrics,
+				&locked_node_metrics,
 				Arc::clone(&self.kv_store),
 				Arc::clone(&self.logger),
 			)?;

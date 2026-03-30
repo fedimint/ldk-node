@@ -283,12 +283,9 @@ impl StorableObject for PaymentDetails {
 		}
 
 		if let Some(confirmation_status) = update.confirmation_status {
-			match self.kind {
-				PaymentKind::Onchain { ref mut status, .. } => {
-					update_if_necessary!(*status, confirmation_status);
-				},
-				_ => {},
-			}
+			if let PaymentKind::Onchain { ref mut status, .. } = self.kind {
+   					update_if_necessary!(*status, confirmation_status);
+   				}
 		}
 
 		if updated {

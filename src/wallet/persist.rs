@@ -88,7 +88,7 @@ impl WalletPersister for KVStoreWalletPersister {
 			} else {
 				latest_change_set.descriptor = Some(descriptor.clone());
 				write_bdk_wallet_descriptor(
-					&descriptor,
+					descriptor,
 					Arc::clone(&persister.kv_store),
 					Arc::clone(&persister.logger),
 				)?;
@@ -111,7 +111,7 @@ impl WalletPersister for KVStoreWalletPersister {
 			} else {
 				latest_change_set.change_descriptor = Some(change_descriptor.clone());
 				write_bdk_wallet_change_descriptor(
-					&change_descriptor,
+					change_descriptor,
 					Arc::clone(&persister.kv_store),
 					Arc::clone(&persister.logger),
 				)?;

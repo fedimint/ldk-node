@@ -123,7 +123,7 @@ impl Wallet {
 					Error::PersistenceFailed
 				})?;
 
-				self.update_payment_store(&mut *locked_wallet).map_err(|e| {
+				self.update_payment_store(&mut locked_wallet).map_err(|e| {
 					log_error!(self.logger, "Failed to update payment store: {}", e);
 					Error::PersistenceFailed
 				})?;
@@ -153,8 +153,8 @@ impl Wallet {
 		Ok(())
 	}
 
-	fn update_payment_store<'a>(
-		&self, locked_wallet: &'a mut PersistedWallet<KVStoreWalletPersister>,
+	fn update_payment_store(
+		&self, locked_wallet: &mut PersistedWallet<KVStoreWalletPersister>,
 	) -> Result<(), Error> {
 		for wtx in locked_wallet.transactions() {
 			let id = PaymentId(wtx.tx_node.txid.to_byte_array());
@@ -360,7 +360,7 @@ impl Wallet {
 		&self, address: &bitcoin::Address, send_amount: OnchainSendAmount,
 		fee_rate: Option<FeeRate>,
 	) -> Result<Txid, Error> {
-		self.parse_and_validate_address(&address)?;
+		self.parse_and_validate_address(address)?;
 
 		// Use the set fee_rate or default to fee estimation.
 		let confirmation_target = ConfirmationTarget::OnchainPayment;
@@ -656,7 +656,7 @@ impl Wallet {
 							log_error!(self.logger, "Failed to retrieve script payload: {}", e);
 						})?;
 
-					let wpkh = WPubkeyHash::from_slice(&witness_program.program().as_bytes())
+					let wpkh = WPubkeyHash::from_slice(witness_program.program().as_bytes())
 						.map_err(|e| {
 							log_error!(self.logger, "Failed to retrieve script payload: {}", e);
 						})?;
@@ -682,7 +682,7 @@ impl Wallet {
 							log_error!(self.logger, "Failed to retrieve script payload: {}", e);
 						})?;
 
-					XOnlyPublicKey::from_slice(&witness_program.program().as_bytes()).map_err(
+					XOnlyPublicKey::from_slice(witness_program.program().as_bytes()).map_err(
 						|e| {
 							log_error!(self.logger, "Failed to retrieve script payload: {}", e);
 						},
@@ -694,7 +694,7 @@ impl Wallet {
 							value: u.txout.value,
 							script_pubkey: ScriptBuf::new_witness_program(&witness_program),
 						},
-						satisfaction_weight: 1 /* empty script_sig */ * WITNESS_SCALE_FACTOR as u64 +
+						satisfaction_weight: (WITNESS_SCALE_FACTOR as u64) +
 							1 /* witness items */ + 1 /* schnorr sig len */ + 64, // schnorr sig
 					};
 					utxos.push(utxo);
@@ -723,7 +723,7 @@ impl Wallet {
 		let address_info = locked_wallet.next_unused_address(KeychainKind::Internal);
 		locked_wallet.persist(&mut locked_persister).map_err(|e| {
 			log_error!(self.logger, "Failed to persist wallet: {}", e);
-			()
+			
 		})?;
 		Ok(address_info.address.script_pubkey())
 	}
@@ -789,7 +789,7 @@ impl Wallet {
 
 		let tx = psbt.extract_tx().map_err(|e| {
 			log_error!(self.logger, "Failed to extract transaction: {}", e);
-			()
+			
 		})?;
 
 		Ok(tx)
@@ -824,7 +824,7 @@ impl Listen for Wallet {
 
 		match locked_wallet.apply_block(block, height) {
 			Ok(()) => {
-				if let Err(e) = self.update_payment_store(&mut *locked_wallet) {
+				if let Err(e) = self.update_payment_store(&mut locked_wallet) {
 					log_error!(self.logger, "Failed to update payment store: {}", e);
 					return;
 				}
@@ -844,9 +844,8 @@ impl Listen for Wallet {
 			Ok(_) => (),
 			Err(e) => {
 				log_error!(self.logger, "Failed to persist on-chain wallet: {}", e);
-				return;
 			},
-		};
+		}
 	}
 
 	fn blocks_disconnected(&self, _fork_point_block: BestBlock) {

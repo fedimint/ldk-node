@@ -70,7 +70,7 @@ impl Runtime {
 		// Since it seems to make a difference to `tokio` (see
 		// https://docs.rs/tokio/latest/tokio/time/fn.timeout.html#panics) we make sure the futures
 		// are always put in an `async` / `.await` closure.
-		background_tasks.spawn_on(async { future.await }, runtime_handle);
+		background_tasks.spawn_on(future, runtime_handle);
 	}
 
 	pub fn spawn_cancellable_background_task<F>(&self, future: F)
@@ -82,7 +82,7 @@ impl Runtime {
 		// Since it seems to make a difference to `tokio` (see
 		// https://docs.rs/tokio/latest/tokio/time/fn.timeout.html#panics) we make sure the futures
 		// are always put in an `async` / `.await` closure.
-		cancellable_background_tasks.spawn_on(async { future.await }, runtime_handle);
+		cancellable_background_tasks.spawn_on(future, runtime_handle);
 	}
 
 	pub fn spawn_background_processor_task<F>(&self, future: F)
@@ -116,19 +116,19 @@ impl Runtime {
 		// Since it seems to make a difference to `tokio` (see
 		// https://docs.rs/tokio/latest/tokio/time/fn.timeout.html#panics) we make sure the futures
 		// are always put in an `async` / `.await` closure.
-		tokio::task::block_in_place(move || handle.block_on(async { future.await }))
+		tokio::task::block_in_place(move || handle.block_on(future))
 	}
 
 	pub fn abort_cancellable_background_tasks(&self) {
 		let mut tasks = core::mem::take(&mut *self.cancellable_background_tasks.lock().unwrap());
-		debug_assert!(tasks.len() > 0, "Expected some cancellable background_tasks");
+		debug_assert!(!tasks.is_empty(), "Expected some cancellable background_tasks");
 		tasks.abort_all();
 		self.block_on(async { while let Some(_) = tasks.join_next().await {} })
 	}
 
 	pub fn wait_on_background_tasks(&self) {
 		let mut tasks = core::mem::take(&mut *self.background_tasks.lock().unwrap());
-		debug_assert!(tasks.len() > 0, "Expected some background_tasks");
+		debug_assert!(!tasks.is_empty(), "Expected some background_tasks");
 		self.block_on(async {
 			loop {
 				let timeout_fut = tokio::time::timeout(

@@ -260,7 +260,7 @@ impl EsploraChainSource {
 						locked_node_metrics.latest_lightning_wallet_sync_timestamp =
 							unix_time_secs_opt;
 						write_node_metrics(
-							&*locked_node_metrics,
+							&locked_node_metrics,
 							Arc::clone(&self.kv_store),
 							Arc::clone(&self.logger),
 						)?;
@@ -354,7 +354,7 @@ impl EsploraChainSource {
 			let mut locked_node_metrics = self.node_metrics.write().unwrap();
 			locked_node_metrics.latest_fee_rate_cache_update_timestamp = unix_time_secs_opt;
 			write_node_metrics(
-				&*locked_node_metrics,
+				&locked_node_metrics,
 				Arc::clone(&self.kv_store),
 				Arc::clone(&self.logger),
 			)?;

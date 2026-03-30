@@ -81,7 +81,7 @@ where
 				let update = object.to_update();
 				updated = e.get_mut().update(&update);
 				if updated {
-					self.persist(&e.get())?;
+					self.persist(e.get())?;
 				}
 			},
 			hash_map::Entry::Vacant(e) => {
@@ -130,7 +130,7 @@ where
 		if let Some(object) = locked_objects.get_mut(&update.id()) {
 			let updated = object.update(update);
 			if updated {
-				self.persist(&object)?;
+				self.persist(object)?;
 				Ok(DataStoreUpdateResult::Updated)
 			} else {
 				Ok(DataStoreUpdateResult::Unchanged)

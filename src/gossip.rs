@@ -66,21 +66,18 @@ impl GossipSource {
 		&self, chain_source: Arc<ChainSource>, peer_manager: Arc<PeerManager>,
 		runtime: Arc<Runtime>,
 	) {
-		match self {
-			Self::P2PNetwork { gossip_sync } => {
-				if let Some(utxo_source) = chain_source.as_utxo_source() {
-					let spawner = RuntimeSpawner::new(Arc::clone(&runtime));
-					let gossip_verifier = Arc::new(GossipVerifier::new(
-						utxo_source,
-						spawner,
-						Arc::clone(gossip_sync),
-						peer_manager,
-					));
-					gossip_sync.add_utxo_lookup(Some(gossip_verifier));
-				}
-			},
-			_ => (),
-		}
+		if let Self::P2PNetwork { gossip_sync } = self {
+  				if let Some(utxo_source) = chain_source.as_utxo_source() {
+  					let spawner = RuntimeSpawner::new(Arc::clone(&runtime));
+  					let gossip_verifier = Arc::new(GossipVerifier::new(
+  						utxo_source,
+  						spawner,
+  						Arc::clone(gossip_sync),
+  						peer_manager,
+  					));
+  					gossip_sync.add_utxo_lookup(Some(gossip_verifier));
+  				}
+  			}
 	}
 
 	pub async fn update_rgs_snapshot(&self) -> Result<u32, Error> {

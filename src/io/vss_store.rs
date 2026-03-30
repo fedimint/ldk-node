@@ -173,7 +173,7 @@ impl KVStoreSync for VssStore {
 	) -> io::Result<Vec<u8>> {
 		let internal_runtime = self.internal_runtime.as_ref().ok_or_else(|| {
 			debug_assert!(false, "Failed to access internal runtime");
-			let msg = format!("Failed to access internal runtime");
+			let msg = "Failed to access internal runtime".to_string();
 			Error::new(ErrorKind::Other, msg)
 		})?;
 		let primary_namespace = primary_namespace.to_string();
@@ -193,7 +193,7 @@ impl KVStoreSync for VssStore {
 	) -> io::Result<()> {
 		let internal_runtime = self.internal_runtime.as_ref().ok_or_else(|| {
 			debug_assert!(false, "Failed to access internal runtime");
-			let msg = format!("Failed to access internal runtime");
+			let msg = "Failed to access internal runtime".to_string();
 			Error::new(ErrorKind::Other, msg)
 		})?;
 		let primary_namespace = primary_namespace.to_string();
@@ -224,7 +224,7 @@ impl KVStoreSync for VssStore {
 	) -> io::Result<()> {
 		let internal_runtime = self.internal_runtime.as_ref().ok_or_else(|| {
 			debug_assert!(false, "Failed to access internal runtime");
-			let msg = format!("Failed to access internal runtime");
+			let msg = "Failed to access internal runtime".to_string();
 			Error::new(ErrorKind::Other, msg)
 		})?;
 		let primary_namespace = primary_namespace.to_string();
@@ -247,7 +247,7 @@ impl KVStoreSync for VssStore {
 				.await
 		};
 		if lazy {
-			internal_runtime.spawn(async { fut.await });
+			internal_runtime.spawn(fut);
 			Ok(())
 		} else {
 			tokio::task::block_in_place(move || internal_runtime.block_on(fut))
@@ -257,7 +257,7 @@ impl KVStoreSync for VssStore {
 	fn list(&self, primary_namespace: &str, secondary_namespace: &str) -> io::Result<Vec<String>> {
 		let internal_runtime = self.internal_runtime.as_ref().ok_or_else(|| {
 			debug_assert!(false, "Failed to access internal runtime");
-			let msg = format!("Failed to access internal runtime");
+			let msg = "Failed to access internal runtime".to_string();
 			Error::new(ErrorKind::Other, msg)
 		})?;
 		let primary_namespace = primary_namespace.to_string();
@@ -333,10 +333,10 @@ impl KVStore for VssStore {
 				.await
 		};
 		if lazy {
-			tokio::task::spawn(async { fut.await });
+			tokio::task::spawn(fut);
 			Box::pin(async { Ok(()) })
 		} else {
-			Box::pin(async { fut.await })
+			Box::pin(fut)
 		}
 	}
 	fn list(
@@ -392,7 +392,7 @@ impl VssStoreInner {
 
 	fn get_inner_lock_ref(&self, locking_key: String) -> Arc<tokio::sync::Mutex<u64>> {
 		let mut outer_lock = self.locks.lock().unwrap();
-		Arc::clone(&outer_lock.entry(locking_key).or_default())
+		Arc::clone(outer_lock.entry(locking_key).or_default())
 	}
 
 	fn build_obfuscated_key(
@@ -646,7 +646,7 @@ impl VssStoreInner {
 		// counted.
 		let mut outer_lock = self.locks.lock().unwrap();
 
-		let strong_count = Arc::strong_count(&inner_lock_ref);
+		let strong_count = Arc::strong_count(inner_lock_ref);
 		debug_assert!(strong_count >= 2, "Unexpected VssStore strong count");
 
 		if strong_count == 2 {

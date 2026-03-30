@@ -148,7 +148,7 @@ impl ElectrumChainSource {
 							locked_node_metrics.latest_onchain_wallet_sync_timestamp =
 								unix_time_secs_opt;
 							write_node_metrics(
-								&*locked_node_metrics,
+								&locked_node_metrics,
 								Arc::clone(&self.kv_store),
 								Arc::clone(&self.logger),
 							)?;
@@ -233,14 +233,14 @@ impl ElectrumChainSource {
 
 		let res = electrum_client.sync_confirmables(confirmables).await;
 
-		if let Ok(_) = res {
+		if res.is_ok() {
 			let unix_time_secs_opt =
 				SystemTime::now().duration_since(UNIX_EPOCH).ok().map(|d| d.as_secs());
 			{
 				let mut locked_node_metrics = self.node_metrics.write().unwrap();
 				locked_node_metrics.latest_lightning_wallet_sync_timestamp = unix_time_secs_opt;
 				write_node_metrics(
-					&*locked_node_metrics,
+					&locked_node_metrics,
 					Arc::clone(&self.kv_store),
 					Arc::clone(&self.logger),
 				)?;
@@ -285,7 +285,7 @@ impl ElectrumChainSource {
 			let mut locked_node_metrics = self.node_metrics.write().unwrap();
 			locked_node_metrics.latest_fee_rate_cache_update_timestamp = unix_time_secs_opt;
 			write_node_metrics(
-				&*locked_node_metrics,
+				&locked_node_metrics,
 				Arc::clone(&self.kv_store),
 				Arc::clone(&self.logger),
 			)?;
@@ -370,7 +370,7 @@ impl ElectrumRuntimeStatus {
 
 	fn client(&self) -> Option<Arc<ElectrumRuntimeClient>> {
 		match self {
-			Self::Started(client) => Some(Arc::clone(&client)),
+			Self::Started(client) => Some(Arc::clone(client)),
 			Self::Stopped { .. } => None,
 		}
 	}
@@ -438,7 +438,7 @@ impl ElectrumRuntimeClient {
 		let timeout_fut =
 			tokio::time::timeout(Duration::from_secs(LDK_WALLET_SYNC_TIMEOUT_SECS), spawn_fut);
 
-		let res = timeout_fut
+		timeout_fut
 			.await
 			.map_err(|e| {
 				log_error!(self.logger, "Sync of Lightning wallet timed out: {}", e);
@@ -459,7 +459,7 @@ impl ElectrumRuntimeClient {
 			now.elapsed().as_millis()
 		);
 
-		Ok(res)
+		Ok(())
 	}
 
 	async fn get_full_scan_wallet_update(

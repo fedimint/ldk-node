@@ -236,7 +236,7 @@ fn format_uri(uri: bip21::Uri<NetworkChecked, Extras>) -> String {
 	uri
 }
 
-impl<'a> SerializeParams for &'a Extras {
+impl SerializeParams for &Extras {
 	type Key = &'static str;
 	type Value = String;
 	type Iterator = IntoIter<(Self::Key, Self::Value)>;

@@ -48,14 +48,14 @@ where
 		}
 
 		locked_peers.insert(peer_info.node_id, peer_info);
-		self.persist_peers(&*locked_peers)
+		self.persist_peers(&locked_peers)
 	}
 
 	pub(crate) fn remove_peer(&self, node_id: &PublicKey) -> Result<(), Error> {
 		let mut locked_peers = self.peers.write().unwrap();
 
 		locked_peers.remove(node_id);
-		self.persist_peers(&*locked_peers)
+		self.persist_peers(&locked_peers)
 	}
 
 	pub(crate) fn list_peers(&self) -> Vec<PeerInfo> {
@@ -67,7 +67,7 @@ where
 	}
 
 	fn persist_peers(&self, locked_peers: &HashMap<PublicKey, PeerInfo>) -> Result<(), Error> {
-		let data = PeerStoreSerWrapper(&*locked_peers).encode();
+		let data = PeerStoreSerWrapper(locked_peers).encode();
 		KVStoreSync::write(
 			&*self.kv_store,
 			PEER_INFO_PERSISTENCE_PRIMARY_NAMESPACE,

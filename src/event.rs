@@ -566,13 +566,11 @@ where
 							});
 
 						let result = if needs_manual_broadcast {
-							self.liquidity_source.as_ref().map(|ls| {
-								ls.lsps2_store_funding_transaction(
+							if let Some(ls) = self.liquidity_source.as_ref() { ls.lsps2_store_funding_transaction(
 									user_channel_id,
 									counterparty_node_id,
 									final_tx.clone(),
-								);
-							});
+								); }
 							self.channel_manager.funding_transaction_generated_manual_broadcast(
 								temporary_channel_id,
 								counterparty_node_id,
@@ -630,9 +628,7 @@ where
 				}
 			},
 			LdkEvent::FundingTxBroadcastSafe { user_channel_id, counterparty_node_id, .. } => {
-				self.liquidity_source.as_ref().map(|ls| {
-					ls.lsps2_funding_tx_broadcast_safe(user_channel_id, counterparty_node_id);
-				});
+				if let Some(ls) = self.liquidity_source.as_ref() { ls.lsps2_funding_tx_broadcast_safe(user_channel_id, counterparty_node_id); }
 			},
 			LdkEvent::PaymentClaimable {
 				payment_hash,
@@ -765,7 +761,7 @@ where
 
 								let custom_records = onion_fields
 									.map(|cf| {
-										cf.custom_tlvs().into_iter().map(|tlv| tlv.into()).collect()
+										cf.custom_tlvs().iter().map(|tlv| tlv.into()).collect()
 									})
 									.unwrap_or_default();
 								let event = Event::PaymentClaimable {
@@ -1006,7 +1002,7 @@ where
 					payment_hash,
 					amount_msat,
 					custom_records: onion_fields
-						.map(|cf| cf.custom_tlvs().into_iter().map(|tlv| tlv.into()).collect())
+						.map(|cf| cf.custom_tlvs().iter().map(|tlv| tlv.into()).collect())
 						.unwrap_or_default(),
 				};
 				match self.event_queue.add_event(event).await {
@@ -1047,8 +1043,7 @@ where
 					},
 				};
 
-				self.payment_store.get(&payment_id).map(|payment| {
-					log_info!(
+				if let Some(payment) = self.payment_store.get(&payment_id) { log_info!(
 						self.logger,
 						"Successfully sent payment of {}msat{} from \
 						payment hash {:?} with preimage {:?}",
@@ -1060,8 +1055,7 @@ where
 						},
 						hex_utils::to_string(&payment_hash.0),
 						hex_utils::to_string(&payment_preimage.0)
-					);
-				});
+					) }
 				let event = Event::PaymentSuccessful {
 					payment_id: Some(payment_id),
 					payment_hash,
@@ -1141,7 +1135,7 @@ where
 				params: _,
 			} => {
 				if is_announced {
-					if let Err(err) = may_announce_channel(&*self.config) {
+					if let Err(err) = may_announce_channel(&self.config) {
 						log_error!(self.logger, "Rejecting inbound announced channel from peer {} due to missing configuration: {}", counterparty_node_id, err);
 
 						self.channel_manager
