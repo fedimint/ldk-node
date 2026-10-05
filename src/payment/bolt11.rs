@@ -22,7 +22,7 @@ use lightning_invoice::{
 };
 use lightning_types::payment::{PaymentHash, PaymentPreimage};
 
-use crate::config::{Config, LDK_PAYMENT_RETRY_TIMEOUT};
+use crate::config::{Config, LDK_PAYMENT_RETRY_TIMEOUT, MANUAL_CLAIM_MIN_FINAL_CLTV_EXPIRY_DELTA};
 use crate::connection::ConnectionManager;
 use crate::data_store::DataStoreUpdateResult;
 use crate::error::Error;
@@ -479,6 +479,8 @@ impl Bolt11Payment {
 				description: invoice_description.clone(),
 				invoice_expiry_delta_secs: Some(expiry_secs),
 				payment_hash: manual_claim_payment_hash,
+				min_final_cltv_expiry_delta: manual_claim_payment_hash
+					.map(|_| MANUAL_CLAIM_MIN_FINAL_CLTV_EXPIRY_DELTA),
 				..Default::default()
 			};
 

@@ -54,6 +54,12 @@ pub(crate) const BDK_CLIENT_CONCURRENCY: usize = 4;
 // The timeout after which we abandon retrying failed payments.
 pub(crate) const LDK_PAYMENT_RETRY_TIMEOUT: Duration = Duration::from_secs(10);
 
+// The minimum final CLTV expiry delta of invoices created for a user-provided payment hash, which
+// are claimed manually. LDK rejects any HTLC paying such an invoice that expires sooner than this
+// many blocks after it arrives, so it leaves the user time to obtain the preimage and claim the
+// payment before LDK fails it back on its own.
+pub(crate) const MANUAL_CLAIM_MIN_FINAL_CLTV_EXPIRY_DELTA: u16 = 144;
+
 // The interval (in block height) after which we retry archiving fully resolved channel monitors.
 pub(crate) const RESOLVED_CHANNEL_MONITOR_ARCHIVAL_INTERVAL: u32 = 6;
 

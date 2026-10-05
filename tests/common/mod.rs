@@ -966,6 +966,7 @@ pub(crate) async fn do_channel_full_cycle<E: ElectrumApi>(
 			manual_payment_hash,
 		)
 		.unwrap();
+	assert!(manual_invoice.min_final_cltv_expiry_delta() >= 144);
 	let manual_payment_id = node_a.bolt11_payment().send(&manual_invoice, None).unwrap();
 
 	let claimable_amount_msat = expect_payment_claimable_event!(
